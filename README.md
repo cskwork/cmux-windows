@@ -1,3 +1,5 @@
+> **cskwork fork notice** — This is a public maintenance fork of [`mkurman/cmux-windows`](https://github.com/mkurman/cmux-windows), maintained by [cskwork](https://github.com/cskwork). The original concept is [`manaflow-ai/cmux`](https://github.com/manaflow-ai/cmux) (macOS, Swift + libghostty, GPL-3.0). Upstream copyright (c) 2026 Mariusz Kurman; the MIT LICENSE is preserved verbatim. Fork point: commit `974b718`. See [NOTICE.md](./NOTICE.md) for full provenance and license details.
+
 # cmux for Windows
 
 A dark, keyboard-first terminal multiplexer for Windows, inspired by tmux/cmux workflows but built natively with WPF + ConPTY.
