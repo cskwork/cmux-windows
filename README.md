@@ -1,217 +1,223 @@
-> **cskwork fork notice** — This is a public maintenance fork of [`mkurman/cmux-windows`](https://github.com/mkurman/cmux-windows), maintained by [cskwork](https://github.com/cskwork). The original concept is [`manaflow-ai/cmux`](https://github.com/manaflow-ai/cmux) (macOS, Swift + libghostty, GPL-3.0). Upstream copyright (c) 2026 Mariusz Kurman; the MIT LICENSE is preserved verbatim. Fork point: commit `974b718`. See [NOTICE.md](./NOTICE.md) for full provenance and license details.
+> **cskwork fork 안내** — 이 저장소는 [`mkurman/cmux-windows`](https://github.com/mkurman/cmux-windows)의 공개 유지보수 fork입니다. 한국어 사용자를 위해 본 README는 한글로 제공하며, 영문 원본은 [README.en.md](./README.en.md)에 보존되어 있습니다. 원안은 [`manaflow-ai/cmux`](https://github.com/manaflow-ai/cmux) (macOS, Swift + libghostty, GPL-3.0). 상위 저작권 `Copyright (c) 2026 Mariusz Kurman`; MIT LICENSE는 원형 그대로 유지됩니다. Fork 시점: 커밋 `974b718`. 자세한 출처/라이선스는 [NOTICE.md](./NOTICE.md) 참고.
 
-# cmux for Windows
+# cmux for Windows — 한국어 가이드
 
-A dark, keyboard-first terminal multiplexer for Windows, inspired by tmux/cmux workflows but built natively with WPF + ConPTY.
+WPF + ConPTY 기반의 **Windows 네이티브 터미널 멀티플렉서**. AI 코딩 에이전트 (Claude Code, Codex, Cursor, Gemini CLI 등)와 함께 쓰도록 설계되었습니다. Electron 런타임을 쓰지 않는 진짜 네이티브 데스크톱 앱입니다.
 
----
+## 한눈에 보기
 
-## Why / Who / What / How
-
-| Why (problem) | Who (for) | What (feature) | How to use |
-|---|---|---|---|
-| You lose context across projects and shells | Developers juggling many repos/tasks | **Workspaces + surfaces (tabs)** | `Ctrl+N` new workspace, `Ctrl+T` new surface, switch with `Ctrl+1..9` |
-| One terminal is never enough | CLI-heavy users, agent workflows | **Split panes** (right/down) | `Ctrl+D` split right, `Ctrl+Shift+D` split down, `Ctrl+Alt+Arrow` focus pane |
-| You miss important agent outputs | AI-assisted coding users (Claude/Codex/etc.) | **OSC notifications + unread tracking** | `Ctrl+I` open notifications, `Ctrl+Shift+U` jump to latest unread |
-| You need auditability of executed commands | Security-conscious / debugging workflows | **Command logs + history picker** | `Ctrl+Shift+L` logs, `Ctrl+Alt+H` command history, insert/run from UI |
-| You want full session recall after crashes/restarts | Long-running sessions | **Session persistence + transcript capture** | Auto restore on startup + open **Session Vault** (`Ctrl+Shift+V`) |
-| You want searchable output history like Termius vault | Anyone reviewing terminal sessions | **Session Vault browser** | Open vault, filter captures, preview transcript, copy/open file |
-| You need dark theme consistency and personalization | Users who care about UX/readability | **Dark UI + terminal theme customization** | Settings (`Ctrl+,`) for colors/font/cursor + workspace accents |
-| You want quick actions without mouse hunting | Keyboard-first power users | **Command palette + shortcuts** | `Ctrl+Shift+P` command palette, menu mirrors key flows |
-| You need automation from scripts/tools | Integrators/agent hooks | **Named pipe CLI API** (`cmux`) | `cmux notify`, `cmux workspace`, `cmux split`, `cmux status` |
+| 무엇 | 어떻게 |
+|---|---|
+| 워크스페이스 + 서피스(탭) + 분할 패인 | `Ctrl+N` / `Ctrl+T` / `Ctrl+D` |
+| AI 에이전트 OSC 알림 + 미확인 추적 | `Ctrl+I` / `Ctrl+Shift+U` |
+| 세션 영구 보존 + 트랜스크립트 검색 | `Ctrl+Shift+V` (Session Vault) |
+| 명령 히스토리 / 리플레이 | `Ctrl+Shift+L` / `Ctrl+Alt+H` |
+| 스크립트 자동화용 CLI | `cmux notify`, `cmux workspace`, `cmux split` |
 
 ---
 
-## Core capabilities
+## AI 에이전트용 자동 설치 (PowerShell 한 블록)
 
-- Native **ConPTY terminal emulation** (real Windows terminal backend)
-- Workspace sidebar with metadata (git branch, cwd, notifications)
-- Multi-surface tabs and split-pane layout management
-- Notification ingestion (OSC 9/99/777) for coding agents
-- Command logs/history with filtering and quick replay
-- Terminal transcript capture + Session Vault browsing
-- Persistent sessions (window + workspace/surface/pane state)
-- Dark desktop UI with keyboard-first navigation
+**대상**: Windows 10 / 11. PowerShell 7 이상 권장. .NET 10 SDK가 없으면 winget으로 자동 설치를 시도합니다.
 
----
-
-## Screenshots
-
-<details>
-  <summary>Open screenshots</summary>
-
-  <p><strong>Main workspace view</strong></p>
-  <img src="assets/screenshots/1.jpg" alt="cmux main workspace" width="1000" />
-
-  <p><strong>Snippets panel</strong></p>
-  <img src="assets/screenshots/2.jpg" alt="cmux snippets panel" width="700" />
-
-  <p><strong>Command logs window</strong></p>
-  <img src="assets/screenshots/3.jpg" alt="cmux command logs" width="1000" />
-</details>
-
----
-
-## Build and run (Windows)
-
-### Requirements
-
-- Windows 10/11
-- [.NET 10 SDK](https://dotnet.microsoft.com/download)
-- Optional: Visual Studio 2022 / Build Tools
-
-### Clone
+PowerShell을 **관리자 권한 없이** 열고 다음 블록을 그대로 붙여 실행하세요:
 
 ```powershell
-git clone <repo-url> cmux-windows
-cd cmux-windows
+# 0) 종료 시 즉시 중단
+$ErrorActionPreference = 'Stop'
+
+# 1) .NET 10 SDK 확인 (없으면 winget으로 설치)
+$hasNet10 = $false
+if (Get-Command dotnet -ErrorAction SilentlyContinue) {
+  $hasNet10 = (dotnet --list-sdks 2>$null) -match '^10\.'
+}
+if (-not $hasNet10) {
+  if (Get-Command winget -ErrorAction SilentlyContinue) {
+    winget install --id Microsoft.DotNet.SDK.10 -e --accept-source-agreements --accept-package-agreements
+    $env:PATH = "$env:ProgramFiles\dotnet;$env:PATH"
+  } else {
+    Write-Error "winget 없음. https://dotnet.microsoft.com/download 에서 .NET 10 SDK를 수동 설치하세요."
+  }
+}
+
+# 2) git 확인
+if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+  if (Get-Command winget -ErrorAction SilentlyContinue) {
+    winget install --id Git.Git -e --accept-source-agreements --accept-package-agreements
+    $env:PATH = "$env:ProgramFiles\Git\cmd;$env:PATH"
+  } else {
+    Write-Error "git 없음. https://git-scm.com/download/win 에서 수동 설치하세요."
+  }
+}
+
+# 3) 저장소 clone (cskwork fork)
+$Root = Join-Path $env:USERPROFILE 'src\cmux-windows'
+if (-not (Test-Path $Root)) {
+  git clone https://github.com/cskwork/cmux-windows.git $Root
+}
+Set-Location $Root
+
+# 4) 단일 파일 자기포함형 GUI 빌드 (대상 PC에 .NET 런타임 설치 불필요)
+dotnet publish src\Cmux\Cmux.csproj -c Release -r win-x64 --self-contained true `
+  /p:PublishSingleFile=true /p:PublishTrimmed=false -o publish\cmux-win-x64-single
+
+# 5) CLI 빌드 + 현재 사용자 PATH에 등록
+dotnet publish src\Cmux.Cli\Cmux.Cli.csproj -c Release -r win-x64 --self-contained true -o publish\cmux-cli
+$CliDir = (Resolve-Path .\publish\cmux-cli).Path
+$UserPath = [Environment]::GetEnvironmentVariable('PATH', 'User')
+if ($UserPath -notlike "*$CliDir*") {
+  [Environment]::SetEnvironmentVariable('PATH', "$UserPath;$CliDir", 'User')
+  Write-Host "사용자 PATH에 $CliDir 추가됨. 새 셸에서 'cmux' 명령 사용 가능."
+}
+
+# 6) GUI 첫 실행
+Start-Process .\publish\cmux-win-x64-single\cmuxw.exe
+Write-Host "설치 완료. GUI: cmuxw.exe / CLI: cmux"
 ```
 
-### Dev run
+설치 끝. `cmuxw.exe`는 GUI, `cmux`는 CLI입니다.
+
+### 수동 설치 (개발 디버그 모드)
 
 ```powershell
+git clone https://github.com/cskwork/cmux-windows.git
+cd cmux-windows
 dotnet build Cmux.sln -c Debug
 dotnet run --project src/Cmux/Cmux.csproj -c Debug
 ```
 
 ---
 
-## Build `.exe` on Windows
+## 빌드 옵션 정리
 
-### 1) Framework-dependent `.exe` (smallest output)
+| 시나리오 | 명령 | 산출물 |
+|---|---|---|
+| 개발 디버그 실행 | `dotnet run --project src/Cmux/Cmux.csproj -c Debug` | 즉시 실행 |
+| 프레임워크 의존형 (작은 용량, 대상에 .NET 런타임 필요) | `dotnet publish src/Cmux/Cmux.csproj -c Release -r win-x64 --self-contained false -o publish/cmux-win-x64` | `publish/cmux-win-x64/cmuxw.exe` |
+| 자기포함형 (런타임 포함) | `dotnet publish src/Cmux/Cmux.csproj -c Release -r win-x64 --self-contained true -o publish/cmux-win-x64-sc` | `publish/cmux-win-x64-sc/cmuxw.exe` |
+| 단일 파일 자기포함형 (배포 친화) | `dotnet publish src/Cmux/Cmux.csproj -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true /p:PublishTrimmed=false -o publish/cmux-win-x64-single` | `publish/cmux-win-x64-single/cmuxw.exe` |
+| CLI 도구 | `dotnet publish src/Cmux.Cli/Cmux.Cli.csproj -c Release -r win-x64 --self-contained true -o publish/cmux-cli` | `publish/cmux-cli/cmux.exe` |
 
-```powershell
-dotnet publish src/Cmux/Cmux.csproj -c Release -r win-x64 --self-contained false -o publish/cmux-win-x64
-```
-
-Output:
-- `publish/cmux-win-x64/cmuxw.exe`
-
-Use this when target machines already have .NET runtime installed.
-
-### 2) Self-contained `.exe` (no runtime install needed)
-
-```powershell
-dotnet publish src/Cmux/Cmux.csproj -c Release -r win-x64 --self-contained true -o publish/cmux-win-x64-sc
-```
-
-Output:
-- `publish/cmux-win-x64-sc/cmuxw.exe`
-
-### 3) Single-file self-contained `.exe` (portable artifact)
-
-```powershell
-dotnet publish src/Cmux/Cmux.csproj -c Release -r win-x64 --self-contained true /p:PublishSingleFile=true /p:PublishTrimmed=false -o publish/cmux-win-x64-single
-```
-
-Output:
-- `publish/cmux-win-x64-single/cmuxw.exe`
-
-> Note: WebView2-backed features may require WebView2 Runtime depending on target system state.
-
-### Build CLI executable
-
-```powershell
-dotnet publish src/Cmux.Cli/Cmux.Cli.csproj -c Release -r win-x64 --self-contained true -o publish/cmux-cli
-```
-
-Add `publish/cmux-cli` to `PATH` to use `cmux` globally.
+> WebView2 기반 기능을 쓰는 경우 대상 시스템에 [WebView2 Runtime](https://developer.microsoft.com/microsoft-edge/webview2/)이 필요할 수 있습니다.
 
 ---
 
-## First 5 minutes (how to use)
+## 처음 5분 사용 가이드
 
-1. Launch `cmuxw.exe`
-2. `Ctrl+N` to create a workspace for your repo
-3. `Ctrl+T` to create additional surfaces (tabs)
-4. Split panes with `Ctrl+D` / `Ctrl+Shift+D`
-5. Open command palette with `Ctrl+Shift+P` for quick actions
-6. Open logs with `Ctrl+Shift+L`
-7. Open Session Vault with `Ctrl+Shift+V`
-8. Open settings with `Ctrl+,` and tune terminal theme/font/cursor
-
----
-
-## Keyboard shortcuts
-
-### Workspaces
-
-| Shortcut | Action |
-|---|---|
-| `Ctrl+N` | New workspace |
-| `Ctrl+1..8` | Jump to workspace 1..8 |
-| `Ctrl+9` | Jump to last workspace |
-| `Ctrl+Shift+W` | Close workspace |
-| `Ctrl+Shift+R` | Rename workspace |
-| `Ctrl+B` | Toggle sidebar |
-
-### Surfaces (tabs)
-
-| Shortcut | Action |
-|---|---|
-| `Ctrl+T` | New surface |
-| `Ctrl+W` | Close surface |
-| `Ctrl+Shift+]` | Next surface |
-| `Ctrl+Shift+[` | Previous surface |
-| `Ctrl+Tab` / `Ctrl+Shift+Tab` | Cycle surfaces |
-
-### Panes
-
-| Shortcut | Action |
-|---|---|
-| `Ctrl+D` | Split right |
-| `Ctrl+Shift+D` | Split down |
-| `Ctrl+Alt+Arrow` | Focus adjacent pane |
-| `Ctrl+Shift+Z` | Zoom/unzoom pane |
-
-### Productivity
-
-| Shortcut | Action |
-|---|---|
-| `Ctrl+Shift+P` | Command palette |
-| `Ctrl+Shift+F` | Search overlay |
-| `Ctrl+Shift+L` | Command logs |
-| `Ctrl+Shift+V` | Session vault |
-| `Ctrl+Alt+H` | Command history picker |
-| `Ctrl+,` | Settings |
+1. `cmuxw.exe` 실행
+2. `Ctrl+N` — 작업 중인 저장소용 워크스페이스 생성
+3. `Ctrl+T` — 서피스(탭) 추가
+4. `Ctrl+D` / `Ctrl+Shift+D` — 패인 가로 / 세로 분할
+5. `Ctrl+Shift+P` — 명령 팔레트
+6. `Ctrl+Shift+L` — 명령 로그
+7. `Ctrl+Shift+V` — Session Vault (트랜스크립트 보관함)
+8. `Ctrl+,` — 설정 (테마 / 폰트 / 커서 조정)
 
 ---
 
-## CLI usage
+## 단축키
+
+### 워크스페이스
+
+| 단축키 | 동작 |
+|---|---|
+| `Ctrl+N` | 새 워크스페이스 |
+| `Ctrl+1..8` | 1~8번 워크스페이스로 이동 |
+| `Ctrl+9` | 마지막 워크스페이스 |
+| `Ctrl+Shift+W` | 워크스페이스 닫기 |
+| `Ctrl+Shift+R` | 워크스페이스 이름 변경 |
+| `Ctrl+B` | 사이드바 토글 |
+
+### 서피스 (탭)
+
+| 단축키 | 동작 |
+|---|---|
+| `Ctrl+T` | 새 서피스 |
+| `Ctrl+W` | 서피스 닫기 |
+| `Ctrl+Shift+]` / `Ctrl+Shift+[` | 다음 / 이전 서피스 |
+| `Ctrl+Tab` / `Ctrl+Shift+Tab` | 서피스 순회 |
+
+### 패인
+
+| 단축키 | 동작 |
+|---|---|
+| `Ctrl+D` | 오른쪽 분할 |
+| `Ctrl+Shift+D` | 아래쪽 분할 |
+| `Ctrl+Alt+화살표` | 인접 패인으로 포커스 이동 |
+| `Ctrl+Shift+Z` | 패인 확대 / 축소 토글 |
+
+### 생산성
+
+| 단축키 | 동작 |
+|---|---|
+| `Ctrl+Shift+P` | 명령 팔레트 |
+| `Ctrl+Shift+F` | 검색 오버레이 |
+| `Ctrl+Shift+L` | 명령 로그 |
+| `Ctrl+Shift+V` | Session Vault |
+| `Ctrl+Alt+H` | 명령 히스토리 선택기 |
+| `Ctrl+,` | 설정 |
+
+---
+
+## CLI 사용법
+
+`cmux` CLI는 named pipe로 동작 중인 `cmuxw` 프로세스에 명령을 보냅니다.
 
 ```powershell
-# Send a notification (e.g., from agent hooks)
-cmux notify --title "Claude Code" --body "Waiting for input"
+# 에이전트 훅에서 알림 발송
+cmux notify --title "Claude Code" --body "입력 대기 중"
 
-# Workspace management
+# 워크스페이스 관리
 cmux workspace list
 cmux workspace create --name "My Project"
 cmux workspace select --index 0
 
-# Surface/pane actions
+# 서피스 / 패인 제어
 cmux surface create
 cmux split right
 cmux split down
 
-# Inspect status
+# 상태 조회
 cmux status
 ```
 
 ---
 
-## Architecture (high level)
+## AI 에이전트 통합 팁
+
+- **Claude Code / Codex 등의 알림 훅**: 작업이 끝나거나 입력 대기에 들어갈 때 `cmux notify --title "..." --body "..."` 호출. 워크스페이스의 미확인 카운터가 올라가고 `Ctrl+Shift+U`로 바로 점프할 수 있습니다.
+- **OSC 시퀀스 활용**: 셸 내부에서 `printf '\033]9;%s\007' "메시지"` 같은 OSC 9 / 99 / 777 시퀀스를 출력하면 cmux가 자동으로 알림으로 변환합니다 (별도 CLI 호출 불필요).
+- **여러 에이전트 병렬 실행**: 에이전트별로 서피스(탭)를 분리하거나 패인을 나눠 동시에 모니터링.
+
+---
+
+## 아키텍처
 
 ```text
 src/
-  Cmux/         WPF desktop app (views, controls, themes)
-  Cmux.Core/    terminal engine, models, services, persistence, IPC
-  Cmux.Cli/     command-line client for automation
+  Cmux/         WPF 데스크톱 앱 (뷰, 컨트롤, 테마)
+  Cmux.Core/    터미널 엔진, 모델, 서비스, 지속성, IPC
+  Cmux.Cli/     자동화용 CLI 클라이언트
 tests/
-  Cmux.Tests/   unit tests
+  Cmux.Tests/   유닛 테스트
 ```
 
 ---
 
-## License
+## upstream 동기화
 
-MIT
+```powershell
+git remote -v   # origin = cskwork, upstream = mkurman 이어야 함
+git fetch upstream
+git merge upstream/main
+```
+
+GitHub 웹 UI의 "Sync fork" 버튼도 동일하게 작동합니다.
+
+---
+
+## 라이선스 / 출처
+
+- 라이선스: **MIT** (upstream `Copyright (c) 2026 Mariusz Kurman` 원형 보존)
+- 자세한 출처 / 비주장 / 동기화 안내: [NOTICE.md](./NOTICE.md)
+- 영문 원본 README: [README.en.md](./README.en.md)
